@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Per-Process Bandwidth Monitor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #0f0f0f; color: #eee; padding: 30px; }
+        h1 { color: #4ade80; margin-bottom: 5px; }
+        .subtitle { color: #888; margin-bottom: 25px; }
+        .card { background: #1a1a1a; border-radius: 12px; padding: 20px; margin-bottom: 20px; max-width: 900px; }
+        #liveChart, #lifetimeChart { max-height: 350px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { text-align: left; padding: 8px; border-bottom: 1px solid #333; }
+        th { color: #4ade80; }
+    </style>
+</head>
+<body>
+    <h1>Live Per-Process Bandwidth Monitor</h1>
+    <div class="subtitle">Kernel-level network monitoring via eBPF · updates every 2s</div>
+
+    <div class="card">
+        <h3>Current Rate (KB/s, rolling window)</h3>
+        <canvas id="liveChart"></canvas>
+    </div>
+
+    <div class="card">
+        <h3>Lifetime Totals (KB)</h3>
+        <table id="lifetimeTable">
+            <thead><tr><th>Process</th><th>Sent</th><th>Received</th></tr></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <script>
+        const liveCtx = document.getElementById('liveChart').getContext('2d');
+        const liveChart = new Chart(liveCtx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: 'Sent (KB/s)', data: [], backgroundColor: '#f87171' },
+                    { label: 'Received (KB/s)', data: [], backgroundColor: '#60a5fa' }
+                ]
+            },
+            options: { responsive: true, scales: { y: { beginAtZero: true } } }
+        });
+
+        async function refreshLive() {
+            const res = await fetch('/api/current');
+            const data = await res.json();
+            const names = Object.keys(data);
+            liveChart.data.labels = names;
+            liveChart.data.datasets[0].data = names.map(n => data[n].sent_kbps);
+            liveChart.data.datasets[1].data = names.map(n => data[n].recv_kbps);
+            liveChart.update();
+        }
+
+        async function refreshLifetime() {
+            const res = await fetch('/api/lifetime');
+            const data = await res.json();
+            const tbody = document.querySelector('#lifetimeTable tbody');
+            tbody.innerHTML = '';
+            for (const [name, v] of Object.entries(data)) {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${name}</td><td>${v.sent_kb} KB</td><td>${v.recv_kb} KB</td>`;
+                tbody.appendChild(row);
+            }
+        }
+
+        setInterval(() => { refreshLive(); refreshLifetime(); }, 2000);
+        refreshLive();
+        refreshLifetime();
+    </script>
+</body>
+</html>

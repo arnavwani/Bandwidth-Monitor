@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+bandwidth_history.db
+.venv/
