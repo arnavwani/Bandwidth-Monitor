@@ -85,7 +85,3 @@ python3 tests/test_aggregation.py
 - Needed a rolling time-window data structure (not just running totals) to
   make the "live" numbers actually reflect current activity rather than
   all-time usage.
-
-## Screenshots
-
-See `screenshots/` for a demo of the live dashboard.
