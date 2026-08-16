@@ -6,11 +6,21 @@ process on your machine is using bandwidth, live — built using eBPF.
 Most tools like Task Manager show total network usage; they don't break it
 down per-process in real time. I built this to understand kernel-level
 observability and see exactly where my bandwidth actually goes.
-## Demo
-
-![Dashboard Screenshot](screenshots/dashboard.png)
 
 ## How it works
+[Network traffic in kernel]
+|
+[eBPF probes hook tcp_sendmsg / tcp_recvmsg]
+|
+[BCC pulls events out of the kernel into Python]
+|
+[Rolling aggregator tracks bytes/sec per process]
+|
+[SQLite logs periodic snapshots for history]
+|
+[Flask API serves live + historical data]
+|
+[Dashboard (Chart.js) shows live bar charts]
 
 - **eBPF probes** attach to `tcp_sendmsg` (outgoing) and `tcp_recvmsg` (incoming)
   kernel functions, tagging every event with the PID and process name that
@@ -72,3 +82,7 @@ python3 tests/test_aggregation.py
 - Needed a rolling time-window data structure (not just running totals) to
   make the "live" numbers actually reflect current activity rather than
   all-time usage.
+
+## Screenshots
+
+See `screenshots/` for a demo of the live dashboard.

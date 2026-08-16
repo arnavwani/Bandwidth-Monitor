@@ -3,14 +3,12 @@ import time
 from collections import deque, defaultdict
 
 class RollingAggregator:
-    """
-    Tracks per-process byte events in a rolling time window,
-    plus lifetime totals for historical logging.
-    """
-    def __init__(self, window_seconds=10):
+    def __init__(self, window_seconds=10, idle_eviction_seconds=60):
         self.window_seconds = window_seconds
+        self.idle_eviction_seconds = idle_eviction_seconds
         self.events = defaultdict(deque)   # {process_name: deque[(timestamp, bytes, direction)]}
         self.lifetime_totals = defaultdict(lambda: {"sent": 0, "recv": 0})
+        self.last_seen = {}                # {process_name: timestamp of most recent event}
         self.lock = threading.Lock()
 
     def add_event(self, name, num_bytes, direction):
@@ -19,7 +17,24 @@ class RollingAggregator:
             self.events[name].append((now, num_bytes, direction))
             key = "sent" if direction == 0 else "recv"
             self.lifetime_totals[name][key] += num_bytes
+            self.last_seen[name] = now
             self._trim(name, now)
+
+    def evict_stale(self):
+        """Drop processes that haven't sent/received anything in
+        `idle_eviction_seconds`, so short-lived processes don't accumulate
+        in memory forever for the life of the monitor."""
+        now = time.time()
+        with self.lock:
+            stale = [
+                name for name, ts in self.last_seen.items()
+                if now - ts > self.idle_eviction_seconds
+            ]
+            for name in stale:
+                self.events.pop(name, None)
+                self.lifetime_totals.pop(name, None)
+                self.last_seen.pop(name, None)
+        return stale
 
     def _trim(self, name, now):
         dq = self.events[name]

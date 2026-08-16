@@ -37,8 +37,25 @@ def test_multiple_processes_tracked_independently():
     print("test_multiple_processes_tracked_independently passed")
 
 
+def test_evict_stale_removes_idle_processes_only():
+    agg = RollingAggregator(window_seconds=5, idle_eviction_seconds=1)
+    agg.add_event("chrome", 500, 0)
+    agg.add_event("short_lived_script", 100, 0)
+    time.sleep(1.5)
+    agg.add_event("chrome", 500, 0)
+
+    evicted = agg.evict_stale()
+
+    assert "short_lived_script" in evicted
+    assert "chrome" not in evicted
+    assert "short_lived_script" not in agg.get_lifetime_totals()
+    assert "chrome" in agg.get_lifetime_totals()
+    print("test_evict_stale_removes_idle_processes_only passed")
+
+
 if __name__ == "__main__":
     test_add_event_updates_lifetime_totals()
     test_rolling_window_expires_old_events()
     test_multiple_processes_tracked_independently()
+    test_evict_stale_removes_idle_processes_only()
     print("\nAll tests passed.")

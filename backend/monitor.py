@@ -82,6 +82,13 @@ def main():
             except Exception as e:
                 print(f"[WARN] Failed to log snapshot: {e}")
 
+            try:
+                evicted = aggregator.evict_stale()
+                if evicted:
+                    print(f"[INFO] Evicted {len(evicted)} idle process(es): {evicted}")
+            except Exception as e:
+                print(f"[WARN] Failed to evict stale processes: {e}")
+
     threading.Thread(target=poll_events, daemon=True).start()
     threading.Thread(target=periodic_logging, daemon=True).start()
 
