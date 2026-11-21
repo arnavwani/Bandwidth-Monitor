@@ -8,19 +8,8 @@ down per-process in real time. I built this to understand kernel-level
 observability and see exactly where my bandwidth actually goes.
 
 ## How it works
-[Network traffic in kernel]
-|
-[eBPF probes hook tcp_sendmsg / tcp_recvmsg]
-|
-[BCC pulls events out of the kernel into Python]
-|
-[Rolling aggregator tracks bytes/sec per process]
-|
-[SQLite logs periodic snapshots for history]
-|
-[Flask API serves live + historical data]
-|
-[Dashboard (Chart.js) shows live bar charts]
+
+![](https://asciiflow.com) [Network traffic in kernel]-->[eBPF probes hook tcp_sendmsg / tcp_recvmsg]; [eBPF probes hook tcp_sendmsg / tcp_recvmsg]-->[BCC pulls events out of the kernel into Python]; [BCC pulls events out of the kernel into Python]-->[Rolling aggregator tracks bytes/sec per process]; [Rolling aggregator tracks bytes/sec per process]-->[SQLite logs periodic snapshots for history]; [SQLite logs periodic snapshots for history]-->[Flask API serves live + historical data]; [Flask API serves live + historical data]-->[Dashboard (Chart.js) shows live bar charts];
 
 - **eBPF probes** attach to `tcp_sendmsg` (outgoing) and `tcp_recvmsg` (incoming)
   kernel functions, tagging every event with the PID and process name that
